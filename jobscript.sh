@@ -12,4 +12,5 @@ module load matplotlib/3.7.2-gfbf-2023a
 
 
 # run your Python main code here
-python3 main.py
+python3 main.py --lr 0.01
+python2 main.py --lr 0.5

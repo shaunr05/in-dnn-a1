@@ -153,9 +153,9 @@ def plot_variable(trace: list, type: str, max_epoch: int, run_type: str):
     plt.plot(range(max_epoch), trace)
     plt.xlabel('Epoch')
     plt.ylabel(f'{run_type} {type}')
-    plt.title(f"{run_type} {type} Over Epochs")
+    plt.title(f"{run_type} {type} Over Epochs for learning rate = {args.lr}")
     #plt.show()
-    plt.savefig(f"{run_type}_{type}_trajectory.png")
+    plt.savefig(f"{run_type}_{type}_trajectory_learning_rate_{args.lr}.png")
     plt.close()
 
 max_epoch = start_epoch + 50
