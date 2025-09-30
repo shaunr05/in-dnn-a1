@@ -158,24 +158,37 @@ def plot_variable(trace: list, type: str, max_epoch: int, run_type: str):
     plt.savefig(f"{run_type}_{type}_trajectory_learning_rate_{args.lr}.png")
     plt.close()
 
+
+def confirm_feature_map_sizes():
+    model = VGG('VGG16').to(device)
+    dummy_input = torch.randn(1, 3, 32, 32).to(device)  # 1 CIFAR-10 image
+
+    print("Confirming feature map sizes after each conv block:\n")
+    for i, layer in enumerate(model.features):
+        dummy_input = layer(dummy_input)
+        if isinstance(layer, nn.MaxPool2d):
+            print(f"After block {i}: {dummy_input.shape}")
+
 max_epoch = start_epoch + 50
 loss_trace = []
 accuracy_trace = []
 loss_trace_test = []
 accuracy_trace_test = []
 
-for epoch in range(start_epoch, max_epoch):
-    loss, accuracy = train(epoch)
-    loss_trace.append(loss)
-    accuracy_trace.append(accuracy)
+confirm_feature_map_sizes()
 
-    loss_test, accuracy_test = test(epoch)
-    loss_trace_test.append(loss_test)
-    accuracy_trace_test.append(accuracy_test)
-    scheduler.step()
-
-# plotting traces
-plot_variable(loss_trace, 'Loss', max_epoch, 'Training')
-plot_variable(accuracy_trace, 'Accuracy', max_epoch, 'Training')
-plot_variable(loss_trace_test, 'Loss', max_epoch, 'Testing')
-plot_variable(accuracy_trace_test, 'Accuracy', max_epoch, 'Testing')
+# for epoch in range(start_epoch, max_epoch):
+#     loss, accuracy = train(epoch)
+#     loss_trace.append(loss)
+#     accuracy_trace.append(accuracy)
+#
+#     loss_test, accuracy_test = test(epoch)
+#     loss_trace_test.append(loss_test)
+#     accuracy_trace_test.append(accuracy_test)
+#     scheduler.step()
+#
+# # plotting traces
+# plot_variable(loss_trace, 'Loss', max_epoch, 'Training')
+# plot_variable(accuracy_trace, 'Accuracy', max_epoch, 'Training')
+# plot_variable(loss_trace_test, 'Loss', max_epoch, 'Testing')
+# plot_variable(accuracy_trace_test, 'Accuracy', max_epoch, 'Testing')
