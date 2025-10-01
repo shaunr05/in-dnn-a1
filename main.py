@@ -177,15 +177,52 @@ accuracy_trace_test = []
 
 confirm_feature_map_sizes()
 
-# for epoch in range(start_epoch, max_epoch):
-#     loss, accuracy = train(epoch)
-#     loss_trace.append(loss)
-#     accuracy_trace.append(accuracy)
-#
-#     loss_test, accuracy_test = test(epoch)
-#     loss_trace_test.append(loss_test)
-#     accuracy_trace_test.append(accuracy_test)
-#     scheduler.step()
+
+for epoch in range(start_epoch, max_epoch):
+    loss, accuracy = train(epoch)
+    loss_trace.append(loss)
+    accuracy_trace.append(accuracy)
+
+    # loss_test, accuracy_test = test(epoch)
+    # loss_trace_test.append(loss_test)
+    # accuracy_trace_test.append(accuracy_test)
+    # scheduler.step()
+
+# FEATURE MAP FUNCTIONS
+# --- Store feature maps here ---
+feature_maps = {}
+
+def get_activation(name):
+    def hook(model, input, output):
+        feature_maps[name] = output.detach().cpu()
+    return hook
+
+# Attach hooks to block 1, 3, 5 (MaxPool layers at indices 6, 23, 43)
+layers_to_hook = [6, 23, 43]
+for idx, layer in enumerate(net.module.features if isinstance(net, nn.DataParallel) else net.features):
+    if idx in layers_to_hook:
+        layer.register_forward_hook(get_activation(f"block_{idx}"))
+
+# Take one CIFAR-10 sample
+sample_img, _ = trainset[0]
+sample_img = sample_img.unsqueeze(0).to(device)
+
+# Forward pass (hooks will store feature maps)
+with torch.no_grad():
+    _ = net(sample_img)
+
+def plot_feature_maps():
+    fig, axes = plt.subplots(len(feature_maps), 3, figsize=(9, 9))
+    for i, (name, fmap) in enumerate(feature_maps.items()):
+        for j in range(3):  # pick 3 channels
+            axes[i, j].imshow(fmap[0, j], cmap="gray")
+            axes[i, j].axis("off")
+            axes[i, j].set_title(f"{name} ch{j}")
+    plt.tight_layout()
+    plt.savefig('2D_feature_maps_after_training.png')
+    plt.close()
+
+plot_feature_maps()
 #
 # # plotting traces
 # plot_variable(loss_trace, 'Loss', max_epoch, 'Training')
