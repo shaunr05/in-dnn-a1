@@ -169,27 +169,29 @@ def confirm_feature_map_sizes():
         if isinstance(layer, nn.MaxPool2d):
             print(f"After block {i}: {dummy_input.shape}")
 
+
+# GLOBALS
 max_epoch = start_epoch + 50
 loss_trace = []
 accuracy_trace = []
 loss_trace_test = []
 accuracy_trace_test = []
 
+# CONFIRM FEATURE MAP SIZE
 confirm_feature_map_sizes()
 
-
+## TRAINING AND TESTING
 for epoch in range(start_epoch, max_epoch):
     loss, accuracy = train(epoch)
     loss_trace.append(loss)
     accuracy_trace.append(accuracy)
 
-    # loss_test, accuracy_test = test(epoch)
-    # loss_trace_test.append(loss_test)
-    # accuracy_trace_test.append(accuracy_test)
-    # scheduler.step()
+    loss_test, accuracy_test = test(epoch)
+    loss_trace_test.append(loss_test)
+    accuracy_trace_test.append(accuracy_test)
+    scheduler.step()
 
 # FEATURE MAP FUNCTIONS
-# --- Store feature maps here ---
 feature_maps = {}
 
 def get_activation(name):
@@ -197,7 +199,7 @@ def get_activation(name):
         feature_maps[name] = output.detach().cpu()
     return hook
 
-# Attach hooks to block 1, 3, 5 (MaxPool layers at indices 6, 23, 43)
+# Attach hooks to block 1, 3, 5
 layers_to_hook = [6, 23, 43]
 for idx, layer in enumerate(net.module.features if isinstance(net, nn.DataParallel) else net.features):
     if idx in layers_to_hook:
@@ -207,7 +209,6 @@ for idx, layer in enumerate(net.module.features if isinstance(net, nn.DataParall
 sample_img, _ = trainset[0]
 sample_img = sample_img.unsqueeze(0).to(device)
 
-# Forward pass (hooks will store feature maps)
 with torch.no_grad():
     _ = net(sample_img)
 
@@ -223,9 +224,9 @@ def plot_feature_maps():
     plt.close()
 
 plot_feature_maps()
-#
-# # plotting traces
-# plot_variable(loss_trace, 'Loss', max_epoch, 'Training')
-# plot_variable(accuracy_trace, 'Accuracy', max_epoch, 'Training')
-# plot_variable(loss_trace_test, 'Loss', max_epoch, 'Testing')
-# plot_variable(accuracy_trace_test, 'Accuracy', max_epoch, 'Testing')
+
+# PLOTTING TRACES
+plot_variable(loss_trace, 'Loss', max_epoch, 'Training')
+plot_variable(accuracy_trace, 'Accuracy', max_epoch, 'Training')
+plot_variable(loss_trace_test, 'Loss', max_epoch, 'Testing')
+plot_variable(accuracy_trace_test, 'Accuracy', max_epoch, 'Testing')
