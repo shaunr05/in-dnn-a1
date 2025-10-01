@@ -158,12 +158,29 @@ def plot_variable(trace: list, type: str, max_epoch: int, run_type: str):
     plt.savefig(f"{run_type}_{type}_trajectory_learning_rate_{args.lr}.png")
     plt.close()
 
+
+def confirm_feature_map_sizes():
+    model = VGG('VGG16').to(device)
+    dummy_input = torch.randn(1, 3, 32, 32).to(device)  # 1 CIFAR-10 image
+
+    print("Confirming feature map sizes after each conv block:\n")
+    for i, layer in enumerate(model.features):
+        dummy_input = layer(dummy_input)
+        if isinstance(layer, nn.MaxPool2d):
+            print(f"After block {i}: {dummy_input.shape}")
+
+
+# GLOBALS
 max_epoch = start_epoch + 50
 loss_trace = []
 accuracy_trace = []
 loss_trace_test = []
 accuracy_trace_test = []
 
+# CONFIRM FEATURE MAP SIZE
+confirm_feature_map_sizes()
+
+## TRAINING AND TESTING
 for epoch in range(start_epoch, max_epoch):
     loss, accuracy = train(epoch)
     loss_trace.append(loss)
@@ -174,7 +191,41 @@ for epoch in range(start_epoch, max_epoch):
     accuracy_trace_test.append(accuracy_test)
     scheduler.step()
 
-# plotting traces
+# FEATURE MAP FUNCTIONS
+feature_maps = {}
+
+def get_activation(name):
+    def hook(model, input, output):
+        feature_maps[name] = output.detach().cpu()
+    return hook
+
+# Attach hooks to block 1, 3, 5
+layers_to_hook = [6, 23, 43]
+for idx, layer in enumerate(net.module.features if isinstance(net, nn.DataParallel) else net.features):
+    if idx in layers_to_hook:
+        layer.register_forward_hook(get_activation(f"block_{idx}"))
+
+# Take one CIFAR-10 sample
+sample_img, _ = trainset[0]
+sample_img = sample_img.unsqueeze(0).to(device)
+
+with torch.no_grad():
+    _ = net(sample_img)
+
+def plot_feature_maps():
+    fig, axes = plt.subplots(len(feature_maps), 3, figsize=(9, 9))
+    for i, (name, fmap) in enumerate(feature_maps.items()):
+        for j in range(3):  # pick 3 channels
+            axes[i, j].imshow(fmap[0, j], cmap="gray")
+            axes[i, j].axis("off")
+            axes[i, j].set_title(f"{name} ch{j}")
+    plt.tight_layout()
+    plt.savefig('2D_feature_maps_after_training.png')
+    plt.close()
+
+plot_feature_maps()
+
+# PLOTTING TRACES
 plot_variable(loss_trace, 'Loss', max_epoch, 'Training')
 plot_variable(accuracy_trace, 'Accuracy', max_epoch, 'Training')
 plot_variable(loss_trace_test, 'Loss', max_epoch, 'Testing')
